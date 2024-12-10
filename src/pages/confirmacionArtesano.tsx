@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import { Product } from "../types/types";
 import Swal from "sweetalert2";
 import { API_URL } from "@/libs/constants";
-
 
 interface Pedido {
   id_pedido: number;
@@ -48,6 +47,10 @@ const ConfirmacionArtesano = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<string | null>(null);
+  const [selectedArtesano, setSelectedArtesano] = useState<Delivery | null>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem("userData");
@@ -58,24 +61,18 @@ const ConfirmacionArtesano = () => {
 
     const fetchData = async () => {
       try {
-        const productsResponse = await fetch(
-          `${API_URL}/producto/`
-        );
+        const productsResponse = await fetch(`${API_URL}/producto/`);
         const productsData = await productsResponse.json();
         const userProducts = productsData.filter(
           (product: Product) => product.id_artesano === id
         );
         setProducts(userProducts);
 
-        const pedidosResponse = await fetch(
-          `${API_URL}/pedido/`
-        );
+        const pedidosResponse = await fetch(`${API_URL}/pedido/`);
         const pedidosData = await pedidosResponse.json();
         setOrders(pedidosData);
 
-        const aniadeResponse = await fetch(
-          `${API_URL}/aniade/`
-        );
+        const aniadeResponse = await fetch(`${API_URL}/aniade/`);
         const aniadeData = await aniadeResponse.json();
         const filteredAniade = aniadeData.filter((aniade: Aniade) =>
           userProducts.some(
@@ -87,9 +84,7 @@ const ConfirmacionArtesano = () => {
         );
         setAniade(filteredAniade2);
 
-        const deliveriesResponse = await fetch(
-          `${API_URL}/delivery/`
-        );
+        const deliveriesResponse = await fetch(`${API_URL}/delivery/`);
         const deliveriesData = await deliveriesResponse.json();
         setDeliveries(deliveriesData);
       } catch (error) {
@@ -99,6 +94,17 @@ const ConfirmacionArtesano = () => {
 
     fetchData();
   }, []);
+
+  const handleShowModal = useCallback((delivery: Delivery) => {
+    setSelectedArtesano(delivery);
+    setModalType("artesano");
+    setShowModal(true);
+  }, []);
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedArtesano(null);
+  };
 
   const showDeliveryContact = (cellphone: number) => {
     Swal.fire({
@@ -206,11 +212,115 @@ const ConfirmacionArtesano = () => {
       }
     }
   };
-
+  const ConfirmArtesano = useCallback(
+    async (aniadeItem: Aniade) => { // Cambiamos el nombre del parámetro a aniadeItem
+      if (!aniadeItem) return;
+      try {
+        if (aniadeItem.delivery_confirm && aniadeItem.artesano_confirm) {
+          Swal.fire({
+            title: "Error",
+            text: "La entrega ya fue confirmada por ambas partes y no se puede modificar.",
+            icon: "error",
+            confirmButtonText: "Aceptar",
+          });
+          return;
+        }
+  
+        if (!aniadeItem.delivery_confirm && aniadeItem.artesano_confirm) {
+          const confirmed = await Swal.fire({
+            title: "¿Cancelar Confirmación?",
+            text: "¿Deseas cancelar la confirmación de la entrega?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, cancelar",
+            cancelButtonText: "No, volver",
+          });
+  
+          if (confirmed.isConfirmed) {
+            const response = await fetch(`${API_URL}/aniade/${aniadeItem.id_aniade}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ artesano_confirm: false }),
+            });
+  
+            if (!response.ok) {
+              throw new Error("Error al cancelar la confirmación");
+            }
+  
+            const updatedAniade = aniade.map((item) =>
+              item.id_aniade === aniadeItem.id_aniade
+                ? { ...item, artesano_confirm: false }
+                : item
+            );
+            setAniade(updatedAniade);
+  
+            Swal.fire({
+              title: "Cancelación exitosa",
+              text: "La confirmación del pedido ha sido cancelada.",
+              icon: "success",
+              confirmButtonText: "Aceptar",
+            });
+          }
+        }
+  
+        if (aniadeItem.delivery_confirm || !aniadeItem.artesano_confirm) {
+          const confirmed = await Swal.fire({
+            title: "Confirmar Pedido",
+            text: "¿Estás seguro de que deseas confirmar este pedido?",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Sí, confirmar",
+            cancelButtonText: "No, cancelar",
+          });
+  
+          if (confirmed.isConfirmed) {
+            const response = await fetch(`${API_URL}/aniade/${aniadeItem.id_aniade}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ artesano_confirm: true }),
+            });
+  
+            if (!response.ok) {
+              throw new Error("Error al confirmar el pedido");
+            }
+  
+            const updatedAniade = aniade.map((item) =>
+              item.id_aniade === aniadeItem.id_aniade
+                ? { ...item, artesano_confirm: true }
+                : item
+            );
+            setAniade(updatedAniade);
+  
+            Swal.fire({
+              title: "Confirmación exitosa",
+              text: "El pedido ha sido confirmado correctamente.",
+              icon: "success",
+              confirmButtonText: "Aceptar",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error al confirmar el pedido:", error);
+        Swal.fire({
+          title: "Error",
+          text: "Hubo un error al confirmar el pedido. Intenta de nuevo.",
+          icon: "error",
+          confirmButtonText: "Aceptar",
+        });
+      }
+    },
+    [aniade] // Ensure it listens to the updates in aniade state
+  );
+  
+  
   return (
     <>
       <Navbar />
-      <div className="w-5/6 container mx-auto mt-24 p-6 bg-buttonpagecolor2  shadow-lg rounded-lg">
+      <div className="w-5/6 container mx-auto mt-24 p-6 bg-buttonpagecolor2 shadow-lg rounded-lg">
         <h1 className="text-3xl font-semibold text-buttonpagecolor mb-6">Confirmación Artesano</h1>
 
         {aniade.length > 0 ? (
@@ -230,7 +340,7 @@ const ConfirmacionArtesano = () => {
 
               return (
                 <div key={item.id_aniade} className="border-b pb-4">
-                  <h3 className="text-xl font-medium text-gray-800">
+                  <h3 className="text-xl font-medium text-white">
                     Producto: {producto ? producto.nombre_producto : "Desconocido"}
                   </h3>
                   <p className="text-white">Cantidad: {item.cantidad}</p>
@@ -239,44 +349,54 @@ const ConfirmacionArtesano = () => {
                   </p>
 
                   <div className="flex items-center gap-4 mt-4">
+                  <button
+                  onClick={() => ConfirmArtesano(item)}
+                  className={`w-1/2 sm:w-full px-3 py-1 rounded-md ${
+                    !item.delivery_confirm && item.artesano_confirm
+                      ? "bg-red-600 hover:bg-red-700"
+                      : item.delivery_confirm && item.artesano_confirm
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-orange-600 hover:bg-orange-700"
+                  } text-white`}
+                >
+                  {!item.delivery_confirm && item.artesano_confirm
+                    ? "Cancelar Confirmación"
+                    : item.delivery_confirm && item.artesano_confirm
+                    ? "Pedido Terminado"
+                    : "Confirmar"}
+                </button>
+
                     <button
-                      onClick={() => handleConfirm(item.id_aniade)}
-                      disabled={item.artesano_confirm}
-                      className={`${
-                        item.artesano_confirm
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-blue-600 hover:bg-blue-700"
-                      } text-white py-2 px-4 rounded-lg transition duration-300`}
+                      onClick={() => delivery && handleShowModal(delivery)}
+                      className="bg-buttonpagecolor text-white px-6 py-2 rounded-md"
                     >
-                      {item.artesano_confirm ? "Confirmado" : "Confirmar Pedido"}
+                      Ver Contacto Delivery
                     </button>
-
-                    {item.artesano_confirm && (
-                      <button
-                        onClick={() => handleCancelConfirmation(item.id_aniade)}
-                        className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition duration-300"
-                      >
-                        Cancelar Confirmación
-                      </button>
-                    )}
-
-                    {delivery && delivery.celular && (
-                      <button
-                        onClick={() => showDeliveryContact(delivery.celular)}
-                        className="text-blue-500 hover:underline mt-2"
-                      >
-                        Ver Contacto Delivery
-                      </button>
-                    )}
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="text-gray-500">No hay artículos añadidos a los pedidos para este artesano.</p>
+          <p className="text-white">No hay pedidos para confirmar.</p>
         )}
       </div>
+
+      {showModal && selectedArtesano && modalType === "artesano" && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h3 className="text-xl font-semibold mb-4">Información del Artesano</h3>
+            <p className="text-lg">Nombre: {selectedArtesano.nombre_usuario}</p>
+            <p className="text-lg">Email: {selectedArtesano.email_usuario}</p>
+            <p className="text-lg">Celular: {selectedArtesano.celular}</p>
+            <div className="mt-4 flex justify-end">
+              <button onClick={handleCloseModal} className="bg-red-500 text-white px-6 py-2 rounded-md">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

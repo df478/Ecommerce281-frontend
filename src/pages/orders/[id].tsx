@@ -157,11 +157,11 @@ const OrderDetails = () => {
                                             }
                                         }}
                                         className={`px-4 py-2 rounded transition ${
-                                            orderDetails?.estado_pedido === "entregado"
+                                            orderDetails?.estado_pedido === "Entregado"
                                                 ? "bg-yellow-500 text-white hover:bg-yellow-700"
                                                 : "bg-gray-400 text-gray-700 cursor-not-allowed"
                                         }`}
-                                        disabled={orderDetails?.estado_pedido !== "entregado"}
+                                        disabled={orderDetails?.estado_pedido !== "Entregado"}
                                     >
                                         Poner Reseña
                                     </button>

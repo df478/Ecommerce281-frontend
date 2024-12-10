@@ -3,6 +3,8 @@ import React, { useEffect,useState } from 'react';
 import { useRouter } from "next/router";
 import Swal from "sweetalert2";
 import { API_URL } from '@/libs/constants';
+import DeliveryDetail from '@/pages/deliveriesDelivery/[id]';
+import DeliveryDetails from '@/pages/deliveries/[id]';
 
 // Definimos la interfaz para los contactos de delivery
 interface DeliveryContact {
@@ -131,12 +133,13 @@ const OrderItem = ({ order, orderNumber }) => {
 
     const handleCloseModal = () => {
         setShowModal(false);
-    };
-    const confirmDelivery = async () => {
+    };const confirmDelivery = async () => {
         if (!deliveryDetails) return;
+    
         try {
-                // Si ambas confirmaciones están en true, no permitir modificaciones
-            console.log(deliveryDetails)
+            console.log(deliveryDetails);
+    
+            // Verificar si la entrega ya está confirmada por ambas partes
             if (deliveryDetails.delivery_confirm && deliveryDetails.cliente_confirm) {
                 Swal.fire({
                     icon: "error",
@@ -146,104 +149,130 @@ const OrderItem = ({ order, orderNumber }) => {
                 });
                 return;
             }
-            if (!deliveryDetails.delivery_confirm && deliveryDetails.cliente_confirm){
-            window.confirm("¿Deseas cancelar la confirmación de la entrega?")
-            const response = await fetch(`${API_URL}/entrega/${deliveryDetails.id_entrega}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    fecha_entrega: new Date().toISOString(),
-                    cliente_confirm: false
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Error al confirmar la entrega");
-            }
-
-            setDeliveryDetails(prev => (prev ? {
-                ...prev,
-                fecha_entrega: new Date().toISOString(),
-                cliente_confirm: false
-            } : prev));
-
-            Swal.fire({
-                icon: "success",
-                title: "Éxito",
-                text: "Confirmacion cancelada con éxito",
-                confirmButtonText: "Aceptar",
-              });
-            }
-
-            if (!deliveryDetails.cliente_confirm){
-                window.confirm("¿Deseas confirmar la entrega?");
-                const response = await fetch(`${API_URL}/entrega/${deliveryDetails.id_entrega}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        fecha_entrega: new Date().toISOString(),
-                        cliente_confirm: true
-                    }),
-                });
     
-                if (!response.ok) {
-                    throw new Error("Error al confirmar la entrega");
-                }
-                if(deliveryDetails.cliente_confirm){
+            // Si el cliente ya confirmó, preguntar si desea cancelar la confirmación
+            if (!deliveryDetails.delivery_confirm && deliveryDetails.cliente_confirm) {
+                const confirmCancel = window.confirm("¿Deseas cancelar la confirmación de la entrega?");
+                if (confirmCancel) {
                     const response = await fetch(`${API_URL}/entrega/${deliveryDetails.id_entrega}`, {
                         method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            estado_entrega: "Entregado"
+                            cliente_confirm: false,
+                            fecha_entrega: null, // Opcional: Si se requiere anular la fecha
                         }),
                     });
-                    const response2 = await fetch(`${API_URL}/pedido/${deliveryDetails.pedido.id_pedido}`, {
+    
+                    if (!response.ok) {
+                        throw new Error("Error al cancelar la confirmación de la entrega.");
+                    }
+    
+                    setDeliveryDetails(prev => (prev ? {
+                        ...prev,
+                        cliente_confirm: false,
+                        fecha_entrega: null, // Actualiza según tu lógica
+                    } : prev));
+    
+                    Swal.fire({
+                        icon: "success",
+                        title: "Éxito",
+                        text: "Confirmación cancelada con éxito.",
+                        confirmButtonText: "Aceptar",
+                    });
+                }
+                return;
+            }
+    
+            // Confirmar entrega por parte del cliente
+            const confirmDelivery = window.confirm("¿Deseas confirmar la entrega?");
+            if (confirmDelivery) {
+                const response = await fetch(`${API_URL}/entrega/${deliveryDetails.id_entrega}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        cliente_confirm: true,
+                        fecha_entrega: new Date().toISOString(),
+                    }),
+                });
+    
+                if (!response.ok) {
+                    throw new Error("Error al confirmar la entrega.");
+                }
+    
+                // Actualizar estado localmente
+                setDeliveryDetails(prev => (prev ? {
+                    ...prev,
+                    cliente_confirm: true,
+                    fecha_entrega: new Date().toISOString(),
+                } : prev));
+    
+                Swal.fire({
+                    icon: "success",
+                    title: "Éxito",
+                    text: "Entrega confirmada con éxito.",
+                    confirmButtonText: "Aceptar",
+                });
+            }
+    
+            // Si ambas confirmaciones están activas, actualizar "Entregado"
+            if (deliveryDetails.delivery_confirm && deliveryDetails.cliente_confirm) {
+                const [responseEntrega, responsePedido] = await Promise.all([
+                    fetch(`${API_URL}/entrega/${deliveryDetails.id_entrega}`, {
                         method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            estado_pedido: "entregado"
+                            estado_entrega: "Entregado",
                         }),
-                    });
-                    setDeliveryDetails(prev => (prev ? {
-                        ...prev,
-                        fecha_entrega: new Date().toISOString(),
-                        cliente_confirm: true,
-                        estado_entrega: "Entregado",
-                        pedido: {
-                            ...prev.pedido,
-                            estado_pedido: "entregado"
-                        }
-                    } : prev));
-                }else{
-                    setDeliveryDetails(prev => (prev ? {
-                        ...prev,
-                        fecha_entrega: new Date().toISOString(),
-                        cliente_confirm: true
-                    } : prev));
+                    }),
+                    fetch(`${API_URL}/pedido/${deliveryDetails.pedido.id_pedido}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            estado_pedido: "Entregado",
+                        }),
+                    }),
+                ]);
+    
+                if (!responseEntrega.ok || !responsePedido.ok) {
+                    throw new Error("Error al actualizar el estado a 'Entregado'.");
                 }
+    
+                // Actualizar estado localmente
+                setDeliveryDetails(prev => (prev ? {
+                    ...prev,
+                    estado_entrega: "Entregado",
+                    pedido: {
+                        ...prev.pedido,
+                        estado_pedido: "Entregado",
+                    },
+                } : prev));
+    
                 Swal.fire({
                     icon: "success",
                     title: "Éxito",
-                    text: "Entrega confirmada con éxito",
+                    text: "Estado actualizado a 'Entregado'.",
                     confirmButtonText: "Aceptar",
-                  });
+                });
             }
-            console.log(deliveryDetails)
-            if(deliveryDetails.delivery_confirm && deliveryDetails.cliente_confirm){
-                    
-                }
         } catch (error: any) {
-            alert(error.message);
+            console.error(error);
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: error.message || "Ocurrió un error inesperado.",
+                confirmButtonText: "Aceptar",
+            });
         }
     };
+    
     console.log(deliveryDetails)
     if (!deliveryDetails) return <p>No se encontraron detalles de la entrega.</p>;
     const cliente = deliveryDetails.cliente;
@@ -264,7 +293,7 @@ const OrderItem = ({ order, orderNumber }) => {
                     <span className="font-medium">Fecha - Hora:</span> {order.fecha_pedido}
                 </div>
                 <div className="text-gray-600 mb-1">
-                    <span className="font-medium">Estado:</span> <span className='capitalize'>{order.status}</span> {/* Cambiado de `estado_pedido` a `status` */}
+                    <span className="font-medium">Estado:</span> <span className='capitalize'>{deliveryDetails.estado_entrega}</span> {/* Cambiado de `estado_pedido` a `status` */}
                 </div>
                 <div className="text-gray-600 mb-1">
                     <span className="font-medium">Total:</span> <span className="font-semibold">{order.monto_pago} Bs</span>
