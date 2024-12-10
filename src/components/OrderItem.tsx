@@ -274,13 +274,16 @@ const OrderItem = ({ order, orderNumber }) => {
                 </div>
             </div>
             <div className="flex flex-col items-end md:items-center ">
-                <Link 
-                    href={`/orders/${order.id}`} 
-                    className="w-full text-center mt-2 inline-block bg-extrapagecolor2 text-black px-4 py-2 rounded-md shadow-md hover:bg-extrapagecolor transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    aria-label={`Ver detalles del pedido ${orderNumber}`}
-                >
-                    Ver Pedido
-                </Link>
+            <Link 
+                href={`/orders/${order.id}`} 
+                style={{ textDecoration: 'none' }}
+                className="w-full text-center mt-2 inline-block bg-extrapagecolor2 text-black px-4 py-2 rounded-md shadow-md hover:bg-extrapagecolor transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label={`Ver detalles del pedido ${orderNumber}`}
+            >
+                Ver Pedido
+            </Link>
+
+
                 <button 
                     onClick={handleShowModal} 
                     className="w-full text-center mt-2 inline-block bg-extrapagecolor2 text-black px-4 py-2 rounded-md shadow-md hover:bg-extrapagecolor transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500"

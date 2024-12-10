@@ -87,7 +87,7 @@ const CartItem = ({ item }) => {
         <p className="text-tertiarypagecolor">Cantidad: {item.cantidad}</p>
       </div>
       <div className="text-lg font-semibold pr-2">
-        ${item.precio_producto * item.cantidad}
+        Bs {item.precio_producto * item.cantidad}
       </div>
       <div className="flex items-center space-x-2">
         <div className="flex items-center space-x-2 mt-2">

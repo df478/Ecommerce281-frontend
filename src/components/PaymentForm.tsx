@@ -35,6 +35,7 @@ const PaymentForm = ({ onClose, cartItems, totalPrice }) => {
     
 
     try {
+      console.log("orderData antes de crear el pedido:", orderData); // Log de los datos del pedido
       await createOrder(orderData);
       setMessage("Pago procesado con éxito. ¡Gracias por tu compra!");
       setCart([]);
@@ -140,13 +141,16 @@ const PaymentForm = ({ onClose, cartItems, totalPrice }) => {
                   Generar QR
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-2 w-full text-red-500 hover:underline"
-              >
-                Cancelar
-              </button>
+              <div className="flex justify-center  my-4" >
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="bg-red-800 text-white px-20 py-2 rounded hover:bg-red-500"
+                >
+                  Cancelar
+                </button>
+              </div>
+              
             </form>
           ) : (
             <div className="text-center w-full">

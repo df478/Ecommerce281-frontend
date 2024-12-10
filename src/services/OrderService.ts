@@ -1,6 +1,8 @@
+import OrderDetails from "@/pages/orders/[id]";
 import { API_URL } from "../libs/constants";
 
 export const createOrder = async (orderData) => {
+  console.log(orderData)
   try {
     const response = await fetch(`${API_URL}/pedido`, {
       method: "POST",

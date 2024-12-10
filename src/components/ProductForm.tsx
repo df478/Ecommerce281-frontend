@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CldUploadWidget } from "next-cloudinary";
 import { CreateProductService } from "@/services/CreateProductService";
+import { v2 as cloudinary } from "cloudinary";
 
 interface ProductFormData {
   id_artesano: number;
@@ -72,31 +73,45 @@ export default function ProductForm() {
       prevFiles.filter((_, fileIndex) => fileIndex !== index)
     );
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     console.log("primero:", JSON.stringify(formData));
-    
+
     try {
       const urls: string[] = []; // Arreglo temporal para almacenar URLs
 
       // Subir imágenes y obtener URLs
       for (const file of selectedFiles) {
         const imageFormData = new FormData();
-        imageFormData.append("image", file);
+        imageFormData.append("file", file); // Append file as 'file'
+        imageFormData.append(
+          "upload_preset",
+          process.env.NEXT_PUBLIC_CLOUDINARY_PRESET_NAME ||
+            "your_default_preset"
+        ); // Add preset
 
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: imageFormData,
-        });
+        console.log("image form data", imageFormData);
 
-        if (!response.ok) {
-          const errorMessage = await response.text();
-          throw new Error(`Error: ${response.status} ${errorMessage}`);
-        }
+        // Make the POST request to Cloudinary to upload the file
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
+          {
+            method: "POST",
+            body: imageFormData,
+          }
+        );
 
         const data = await response.json();
-        urls.push(data.url);
+
+        console.log("Cloudinary response:", data);
+
+        if (response.ok && data.secure_url) {
+          urls.push(data.secure_url);
+        } else {
+          throw new Error("Error al subir la imagen a Cloudinary");
+        }
       }
 
       // Actualizar formData con las nuevas imágenes

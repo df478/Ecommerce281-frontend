@@ -139,7 +139,7 @@ const OrderDetails = () => {
                                         <h4 className="font-bold text-lg text-gray-800">{item.producto.nombre_producto}</h4>
                                         <p className="text-gray-600">Cantidad: {item.cantidad}</p>
                                     </div>
-                                    <span className="text-lg font-bold text-green-600">${parseFloat(item.producto.precio_producto).toFixed(2)}</span>
+                                    <span className="text-lg font-bold text-green-600">Bs {parseFloat(item.producto.precio_producto).toFixed(2)}</span>
                                 </div>
                                 <div className="mt-4 flex space-x-4">
                                     <button

@@ -1,4 +1,5 @@
 "use client";
+import { FaBell } from "react-icons/fa";
 import Link from "next/link";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
@@ -16,6 +17,25 @@ const Navbar = () => {
   const [isUserMenuOpen, setUserMenuOpen] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const router = useRouter();
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState([
+    {
+      message: "Nuevos Pedidos",
+      time: "hace 218 días 23 horas",
+      link: "#",
+    }
+    // Agrega más notificaciones según sea necesario
+  ]);
+  const toggleNotificationsMenu = () => {
+    setIsNotificationsOpen((prev) => {
+      if (!prev) {
+        setUnreadCount(0); // Restablece el conteo al abrir el menú
+      }
+      return !prev;
+    });
+  };
+  
   console.log(isActive)
   
 
@@ -50,6 +70,7 @@ const Navbar = () => {
   console.log(isLoggedIn)
   const handleLogout = async () => {
     if(role==="delivery"){
+
       try {
         await toggleDeliveryStatus(idUser, false);
         console.log("Estado actualizado correctamente");
@@ -99,8 +120,6 @@ const Navbar = () => {
     } catch (error) {
       console.error("Error al actualizar el estado:", error);
     }
-
-
   };
   // Nuevo: función para renderizar el menú basado en el rol
   const renderUserMenu = () => {
@@ -245,7 +264,46 @@ const Navbar = () => {
                 className={`${styles.slider} ${isActive ? styles.active : ""}`}
               />
             </label>
+            <div className="relative">
+              {/* Icono de notificaciones */}
+              <button onClick={toggleNotificationsMenu} className="relative">
+                <FaBell size={24} className="text-white" />
+                {notifications.length > 0 && (
+                  <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full px-1 text-xs">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Menú desplegable */}
+              {isNotificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-lg z-50">
+                  <div className="p-4 border-b text-lg font-bold text-gray-700">
+                    Notificaciones
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map((notification, index) => (
+                        <div
+                          key={index}
+                          className="p-4 text-sm text-gray-700 border-b last:border-none hover:bg-gray-100 cursor-pointer"
+                        >
+                          <div>{notification.message}</div>
+                          <div className="text-xs text-gray-500">{notification.time}</div>
+                          {/*puedo colocar link o algo*/}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-sm text-gray-500">
+                        No tienes notificaciones nuevas.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+          
         )}
         {/* Icono del carrito y usuario */}
         <div className="flex items-center text-gray-600">

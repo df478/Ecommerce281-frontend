@@ -90,15 +90,15 @@ const Cart = () => {
           )}
           <div className="mt-4 flex justify-between font-semibold">
             <span>Total Productos:</span>
-            <span>${totalPrice.toFixed(2)}</span>
+            <span>Bs {totalPrice.toFixed(2)}</span>
           </div>
           <div className="mt-2 flex justify-between font-semibold">
             <span>Costo de Envío:</span>
-            <span>${shippingCost.toFixed(2)}</span>
+            <span>Bs {shippingCost.toFixed(2)}</span>
           </div>
           <div className="mt-4 flex justify-between font-semibold">
             <span>Total Final:</span>
-            <span>${finalTotal.toFixed(2)}</span>
+            <span>Bs {finalTotal.toFixed(2)}</span>
           </div>
           <button
             onClick={() => setShowPaymentForm(true)}

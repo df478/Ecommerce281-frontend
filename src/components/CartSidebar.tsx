@@ -142,7 +142,7 @@ const CartSidebar = ({ isOpen, onClose }) => {
                     <p>{item.nombre_producto}</p>
                     <p>Cantidad: {item.cantidad}</p>
                     <p>
-                      Precio: ${(parseFloat(item.precio_producto) * item.cantidad).toFixed(2)}
+                      Precio: Bs {(parseFloat(item.precio_producto) * item.cantidad).toFixed(2)}
                     </p>
                     <div className="flex items-center space-x-2 mt-2">
                       {/* Botón para decrementar */}
